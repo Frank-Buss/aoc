@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-pub fn solve(lines: Vec::<&str>) -> (String, String) {
+pub fn solve(lines: Vec<String>) -> (i32, i32) {
     // split each line and store it in 2 int vectors
     let mut left = Vec::new();
     let mut right = Vec::new();
@@ -33,5 +33,5 @@ pub fn solve(lines: Vec::<&str>) -> (String, String) {
     }
 
     // return solutions
-    (solution1.to_string(), solution2.to_string())
+    (solution1, solution2)
 }

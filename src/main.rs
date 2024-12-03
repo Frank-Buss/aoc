@@ -19,6 +19,7 @@ fn call_day(year: i32, day: i32) -> (i32, i32) {
     let fun = match day {
         1 => year2024::day1::solve,
         2 => year2024::day2::solve,
+        3 => year2024::day3::solve,
         _ => not_found,
     };
     fun(lines)

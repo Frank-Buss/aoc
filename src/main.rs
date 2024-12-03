@@ -47,5 +47,6 @@ mod tests {
     fn test2024() {
         assert_eq!(call_day(2024, 1), (1834060, 21607792));
         assert_eq!(call_day(2024, 2), (510, 553));
+        assert_eq!(call_day(2024, 3), (163931492, 76911921));
     }
 }

@@ -28,9 +28,9 @@ pub fn solve(lines: Vec<String>) -> (i32, i32) {
                         {
                             found += 1;
                         }
-                        if found == test.len() {
-                            solution1 += 1;
-                        }
+                    }
+                    if found == test.len() {
+                        solution1 += 1;
                     }
                 }
             }

@@ -22,6 +22,7 @@ fn call_day(year: i32, day: i32) -> (i32, i32) {
         3 => year2024::day3::solve,
         4 => year2024::day4::solve,
         5 => year2024::day5::solve,
+        6 => year2024::day6::solve,
         _ => not_found,
     };
     fun(lines)
@@ -52,5 +53,6 @@ mod tests {
         assert_eq!(call_day(2024, 3), (163931492, 76911921));
         assert_eq!(call_day(2024, 4), (2633, 1936));
         assert_eq!(call_day(2024, 5), (5129, 4077));
+        assert_eq!(call_day(2024, 6), (5153, 1711));
     }
 }

@@ -51,6 +51,6 @@ mod tests {
         assert_eq!(call_day(2024, 2), (510, 553));
         assert_eq!(call_day(2024, 3), (163931492, 76911921));
         assert_eq!(call_day(2024, 4), (2633, 1936));
-        assert_eq!(call_day(2024, 5), (2633, 1936));
+        assert_eq!(call_day(2024, 5), (5129, 4077));
     }
 }

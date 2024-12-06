@@ -1,94 +1,94 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet, VecDeque};
 
-pub fn search(
-    result: &Vec<i32>,
-    rules: &HashMap<i32, Vec<i32>>,
-    update: &Vec<i32>,
-    prev_after: i32,
-    final_result: &mut Vec<i32>
-) {
-    for (key, value) in rules.into_iter() {
-        for before in update {
-            if *before == *key
-                && ((prev_after == *before) || (prev_after == 0))
-            {
-                let mut update = update.clone();
-                update.retain(|&x| x != *before);
-                for after in &update {
-                    if value.contains(after) {
-                        let mut result = result.clone();
-                        result.push(*before);
-                        if update.len() == 1 {
-                            result.push(*after);
-                            *final_result = result.clone();
-                            return;
-                        } else {
-                            search(&mut result, rules, &update, *after, final_result);
-                        }
+// Performs topological sort of numbers based on dependency rules
+// nums: slice of numbers to sort
+// rules: map of number -> set of numbers that must come after it
+fn topo_sort(nums: &[i32], rules: &HashMap<i32, HashSet<i32>>) -> Vec<i32> {
+    let set: HashSet<_> = nums.iter().copied().collect();
+
+    // Calculate in-degree (number of dependencies) for each number
+    let mut deps: HashMap<i32, usize> = nums
+        .iter()
+        .flat_map(|&n| {
+            rules
+                .get(&n)
+                .into_iter()
+                .flatten()
+                .filter(|&next| set.contains(next))
+        })
+        .fold(HashMap::new(), |mut m: HashMap<i32, usize>, &n| {
+            *m.entry(n).or_default() += 1;
+            m
+        });
+
+    // Start with nodes that have no dependencies
+    let mut q: VecDeque<_> = set
+        .iter()
+        .filter(|n| !deps.contains_key(n))
+        .copied()
+        .collect();
+
+    let mut res = Vec::with_capacity(nums.len());
+
+    // Process nodes in order, removing dependencies as we go
+    while let Some(n) = q.pop_front() {
+        res.push(n);
+        if let Some(nexts) = rules.get(&n) {
+            for &next in nexts.iter().filter(|&next| set.contains(next)) {
+                if let Some(c) = deps.get_mut(&next) {
+                    *c -= 1;
+                    if *c == 0 {
+                        q.push_back(next);
                     }
                 }
             }
         }
     }
+    res
 }
 
 pub fn solve(lines: Vec<String>) -> (i32, i32) {
-    let mut solution1 = 0;
-    let mut solution2 = 0;
-
-    let mut rules: HashMap<i32, Vec<i32>> = HashMap::new();
-    let mut updates: Vec<Vec<i32>> = Vec::new();
-    for line in lines {
-        let parts: Vec<String> = line.split("|").map(str::to_string).collect();
-        if parts.len() > 1 {
-            let parts: Vec<i32> = parts
-                .into_iter()
-                .map(|x| x.parse::<i32>().unwrap())
-                .collect();
-            if parts.len() == 2 {
-                rules.entry(parts[0]).or_default().push(parts[1]);
+    // Parse input into rules (n1|n2) and updates (n1,n2,...)
+    let (rules, updates): (HashMap<i32, HashSet<i32>>, Vec<Vec<i32>>) = lines.iter().fold(
+        (HashMap::new(), Vec::new()),
+        |(mut rules, mut updates), line| {
+            // Parse dependency rules (format: n1|n2 means n1 must come before n2)
+            if let [n1, n2] = line
+                .split('|')
+                .filter_map(|s| s.parse().ok())
+                .collect::<Vec<i32>>()[..]
+            {
+                rules.entry(n1).or_default().insert(n2);
             }
-        }
 
-        let parts: Vec<String> = line.split(",").map(str::to_string).collect();
-        if parts.len() > 1 {
-            let parts: Vec<i32> = parts
-                .into_iter()
-                .map(|x| x.parse::<i32>().unwrap())
-                .collect();
-            if parts.len() > 0 {
-                updates.push(parts);
+            // Parse update sequences (comma-separated numbers)
+            let nums: Vec<_> = line.split(',').filter_map(|s| s.parse().ok()).collect();
+            if !nums.is_empty() {
+                updates.push(nums);
             }
-        }
-    }
 
-    for update in updates {
-        let mut ok = true;
-        for i in 0..update.len() - 1 {
-            let before = update[i];
-            for j in i + 1..update.len() {
-                let after = update[j];
-                let found = rules.entry(before).or_default().contains(&after);
-                if !found {
-                    ok = false;
-                    break;
-                }
-            }
-        }
-        if ok {
-            solution1 += update[update.len() / 2];
+            (rules, updates)
+        },
+    );
+
+    // Process each update sequence:
+    // - If valid (follows rules), sum middle number into s1
+    // - If invalid, sort topologically and sum middle number into s2
+    updates.into_iter().fold((0, 0), |(s1, s2), update| {
+        let valid = (0..update.len() - 1).all(|i| {
+            (i + 1..update.len()).all(|j| {
+                rules
+                    .get(&update[i])
+                    .map_or(false, |set| set.contains(&update[j]))
+            })
+        });
+
+        let mid = update[update.len() / 2];
+        if valid {
+            (s1 + mid, s2)
         } else {
-            println!("test {:?}", update);
-            let mut result = Vec::new();
-            let mut final_result = Vec::new();
-            search(&mut result, &rules, &update, 0, &mut final_result);
-            if final_result.len() > 0 {
-                println!("sorted {:?}", final_result);
-                solution2 += final_result[final_result.len() / 2];
-            }
+            let ordered = topo_sort(&update, &rules);
+            (s1, s2 + ordered[ordered.len() / 2])
         }
-    }
-
-    // return solutions
-    (solution1, solution2)
+    })
 }

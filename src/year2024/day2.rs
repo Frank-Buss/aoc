@@ -27,7 +27,7 @@ fn is_save(levels: &Vec<i32>) -> bool {
     increase_count == count || decrease_count == count
 }
 
-pub fn solve(lines: Vec<String>) -> (i32, i32) {
+pub fn solve(lines: Vec<String>) -> (String, String) {
     // count number of safe lines
     let mut solution1 = 0;
     for line in &lines {
@@ -59,5 +59,5 @@ pub fn solve(lines: Vec<String>) -> (i32, i32) {
     }
 
     // return solutions
-    (solution1, solution2)
+    (solution1.to_string(), solution2.to_string())
 }

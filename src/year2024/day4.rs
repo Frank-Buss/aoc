@@ -5,7 +5,7 @@ fn get(grid: &Vec<Vec<u8>>, width: i32, height: i32, x: i32, y: i32) -> char {
     grid[y as usize][x as usize] as char
 }
 
-pub fn solve(lines: Vec<String>) -> (i32, i32) {
+pub fn solve(lines: Vec<String>) -> (String, String) {
     let mut solution1 = 0;
     let mut solution2 = 0;
     let mut grid: Vec<Vec<u8>> = Vec::new();
@@ -50,5 +50,5 @@ pub fn solve(lines: Vec<String>) -> (i32, i32) {
     }
 
     // return solutions
-    (solution1, solution2)
+    (solution1.to_string(), solution2.to_string())
 }

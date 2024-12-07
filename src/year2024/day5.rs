@@ -47,7 +47,7 @@ fn topo_sort(nums: &[i32], rules: &HashMap<i32, HashSet<i32>>) -> Vec<i32> {
     res
 }
 
-pub fn solve(lines: Vec<String>) -> (i32, i32) {
+pub fn solve(lines: Vec<String>) -> (String, String) {
     // Parse input into rules (n1|n2) and updates (n1,n2,...)
     let (rules, updates): (HashMap<i32, HashSet<i32>>, Vec<Vec<i32>>) = lines.iter().fold(
         (HashMap::new(), Vec::new()),
@@ -74,7 +74,7 @@ pub fn solve(lines: Vec<String>) -> (i32, i32) {
     // Process each update sequence:
     // - If valid (follows rules), sum middle number into s1
     // - If invalid, sort topologically and sum middle number into s2
-    updates.into_iter().fold((0, 0), |(s1, s2), update| {
+    let (solution1, solution2) = updates.into_iter().fold((0, 0), |(s1, s2), update| {
         let valid = (0..update.len() - 1).all(|i| {
             (i + 1..update.len()).all(|j| {
                 rules
@@ -90,5 +90,6 @@ pub fn solve(lines: Vec<String>) -> (i32, i32) {
             let ordered = topo_sort(&update, &rules);
             (s1, s2 + ordered[ordered.len() / 2])
         }
-    })
+    });
+    (solution1.to_string(), solution2.to_string())
 }

@@ -1,4 +1,4 @@
-pub fn solve(lines: Vec<String>) -> (i32, i32) {
+pub fn solve(lines: Vec<String>) -> (String, String) {
     let mut state = 0;
 
     let mut solution1 = 0;
@@ -120,5 +120,5 @@ pub fn solve(lines: Vec<String>) -> (i32, i32) {
     }
 
     // return solutions
-    (solution1, solution2)
+    (solution1.to_string(), solution2.to_string())
 }

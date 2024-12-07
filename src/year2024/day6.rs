@@ -43,7 +43,7 @@ fn run(
     }
 }
 
-pub fn solve(lines: Vec<String>) -> (i32, i32) {
+pub fn solve(lines: Vec<String>) -> (String, String) {
     let mut dir = 0;
     let mut grid: Vec<Vec<char>> = Vec::new();
 
@@ -103,5 +103,5 @@ pub fn solve(lines: Vec<String>) -> (i32, i32) {
         }
     }
 
-    (solution1, solution2)
+    (solution1.to_string(), solution2.to_string())
 }

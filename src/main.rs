@@ -25,6 +25,7 @@ fn call_day(year: i32, day: i32) -> (String, String) {
         6 => year2024::day6::solve,
         7 => year2024::day7::solve,
         8 => year2024::day8::solve,
+        9 => year2024::day9::solve,
         _ => not_found,
     };
     fun(lines)
@@ -64,5 +65,6 @@ mod tests {
         test_case!(2024, 6, "5153", "1711");
         test_case!(2024, 7, "1399219271639", "275791737999003");
         test_case!(2024, 8, "276", "991");
+        test_case!(2024, 9, "276", "991");
     }
 }

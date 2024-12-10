@@ -1,6 +1,3 @@
-use itertools::Itertools;
-use std::collections::HashMap;
-
 pub fn solve(lines: Vec<String>) -> (String, String) {
     let mut solution1: i64 = 0;
     let mut solution2: i64 = 0;
@@ -10,7 +7,7 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
     let mut id = 0;
     for c in lines[0].chars() {
         let count = c.to_digit(10).unwrap();
-        for i in 0..count {
+        for _ in 0..count {
             if file {
                 disk.push(id);
             } else {
@@ -84,7 +81,7 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
     let mut pos = 0;
     for i in 0..disk.len() {
         let (count, id) = disk[i];
-        for j in 0..count {
+        for _ in 0..count {
             if id >= 0 {
                 solution2 += (pos * id) as i64;
             }

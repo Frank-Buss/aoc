@@ -28,6 +28,20 @@ fn call_day(year: i32, day: i32) -> (String, String) {
         9 => year2024::day9::solve,
         10 => year2024::day10::solve,
         11 => year2024::day11::solve,
+        12 => year2024::day12::solve,
+        13 => year2024::day13::solve,
+        14 => year2024::day14::solve,
+        15 => year2024::day15::solve,
+        16 => year2024::day16::solve,
+        17 => year2024::day17::solve,
+        18 => year2024::day18::solve,
+        19 => year2024::day19::solve,
+        20 => year2024::day20::solve,
+        21 => year2024::day21::solve,
+        22 => year2024::day22::solve,
+        23 => year2024::day23::solve,
+        24 => year2024::day24::solve,
+        25 => year2024::day25::solve,
         _ => not_found,
     };
     fun(lines)
@@ -70,5 +84,19 @@ mod tests {
         test_case!(2024, 9, "6446899523367", "6478232739671");
         test_case!(2024, 10, "667", "1344");
         test_case!(2024, 11, "218956", "259593838049805");
+        test_case!(2024, 12, "0", "0");
+        test_case!(2024, 13, "0", "0");
+        test_case!(2024, 14, "0", "0");
+        test_case!(2024, 15, "0", "0");
+        test_case!(2024, 16, "0", "0");
+        test_case!(2024, 17, "0", "0");
+        test_case!(2024, 18, "0", "0");
+        test_case!(2024, 19, "0", "0");
+        test_case!(2024, 20, "0", "0");
+        test_case!(2024, 21, "0", "0");
+        test_case!(2024, 22, "0", "0");
+        test_case!(2024, 23, "0", "0");
+        test_case!(2024, 24, "0", "0");
+        test_case!(2024, 25, "0", "0");
     }
 }

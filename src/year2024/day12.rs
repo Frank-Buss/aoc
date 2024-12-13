@@ -1,6 +1,16 @@
-use std::collections::HashSet;
-
 use itertools::Itertools;
+
+#[derive(Debug, Clone, Copy, PartialEq, Hash, Eq)]
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Border {
+    pos: Point,
+    dir: Point,
+}
 
 fn get(grid: &Vec<Vec<u8>>, w: i32, h: i32, x: i32, y: i32) -> u8 {
     if x < 0 || x >= (w as i32) || y < 0 || y >= (h as i32) {
@@ -17,41 +27,29 @@ fn fill(
     h: i32,
     grid: &Vec<Vec<u8>>,
     v: &mut Vec<Vec<bool>>,
-) -> (u32, Vec<(i32, i32)>) {
+) -> (u32, Vec<Border>) {
     if v[y as usize][x as usize] {
         return (0, Vec::new());
     }
     v[y as usize][x as usize] = true;
     let dirs: [(i32, i32); 4] = [(1, 0), (0, 1), (-1, 0), (0, -1)];
     let mut area = 1;
-    let mut border: Vec<(i32, i32)> = Vec::new();
+    let mut borders: Vec<Border> = Vec::new();
     for (dx, dy) in dirs {
-        let x = (x as i32) + dx;
-        let y = (y as i32) + dy;
-        if get(grid, w, h, x, y) == p {
-            let (a, mut b) = fill(p, x, y, w, h, grid, v);
+        let x2 = (x as i32) + dx;
+        let y2 = (y as i32) + dy;
+        if get(grid, w, h, x2, y2) == p {
+            let (a, mut b) = fill(p, x2, y2, w, h, grid, v);
             area += a;
-            border.append(&mut b);
+            borders.append(&mut b);
         } else {
-            border.push((x, y));
+            borders.push(Border {
+                pos: Point { x, y },
+                dir: Point { x: dx, y: dy },
+            });
         }
     }
-    (area, border)
-}
-
-fn count_contiguous(v: &mut Vec<i32>) -> u32 {
-    v.sort();
-    let mut x0 = -3;
-    let mut count = 0;
-    for x in v.clone() {
-        let dx = x - x0;
-        if dx > 1 {
-            count += 1;
-        }
-        x0 = x;
-    }
-    println!("{:?} = {}", v, count);
-    count
+    (area, borders)
 }
 
 pub fn solve(lines: Vec<String>) -> (String, String) {
@@ -65,62 +63,70 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
 
     let w = grid[0].len() as i32;
     let h = grid.len() as i32;
-    let mut visited: HashSet<u8> = HashSet::new();
     let mut v = vec![vec![false; w as usize]; h as usize];
     for y in 0..h {
         for x in 0..w {
             let p = grid[y as usize][x as usize];
-            if !visited.contains(&p) || true {
-                visited.insert(p);
-                let (area, mut border) = fill(p, x, y, w, h, &grid, &mut v);
-                solution1 += area * (border.len() as u32);
+            let (area, borders) = fill(p, x, y, w, h, &grid, &mut v);
+            solution1 += area * (borders.len() as u32);
 
-                if border.len() > 0 {
-                    // group by same x coordinate
-                    let mut ys = (&border).into_iter().into_group_map_by(|x| x.0);
-                    println!("{:?}", border);
-                    //println!("{:?}", ys);
-
-                    // extract all y coordinates of each group
-                    let ys: Vec<Vec<i32>> = ys
-                        .iter()
-                        .map(|(_, ys)| ys.iter().map(|(_, y)| *y).collect())
-                        .collect();
-
-                    // find contiguous y coordinates for each x coordinate
-                    //println!("ys: {:?}", ys);
-                    let ys = ys
+            // count all vertical fences
+            let vertical_fences = borders
+                .clone()
+                .into_iter()
+                // group by same x coordinate
+                .into_group_map_by(|b| b.pos.x)
+                .into_values()
+                .map(|group| {
+                    group
                         .into_iter()
-                        .map(|mut a| count_contiguous(&mut a))
+                        // filter only vertical fences, left or right side of the center
+                        .filter(|b| b.dir.x != 0)
+                        // group by direction, to count all left contiguous and all right continguous borders
+                        .into_group_map_by(|b| b.dir)
+                        .into_values()
+                        // sort all y coordinates, pair it, and then count gaps
+                        // the number of contiguous borders is one more (e.g. no gap, it is one group)
+                        .map(|y_group| {
+                            1 + y_group
+                                .into_iter()
+                                .map(|b| b.pos.y)
+                                .sorted()
+                                .tuple_windows()
+                                .filter(|(a, b)| (b - a).abs() > 1)
+                                .count() as u32
+                        })
+                        .sum::<u32>()
+                })
+                .sum::<u32>();
+
+            // count all horizontal fences
+            let horizontal_fences = borders
+                .clone()
+                .into_iter()
+                .into_group_map_by(|b| b.pos.y) // group by y coordinate
+                .into_values()
+                .map(|group| {
+                    group
                         .into_iter()
-                        .reduce(|a, b| a + b)
-                        .unwrap();
+                        .filter(|b| b.dir.y != 0) // only horizontal fences
+                        .into_group_map_by(|b| b.dir) // group by direction
+                        .into_values()
+                        .map(|x_group| {
+                            1 + x_group
+                                .into_iter()
+                                .map(|b| b.pos.x)
+                                .sorted()
+                                .tuple_windows()
+                                .filter(|(a, b)| (b - a).abs() > 1)
+                                .count() as u32
+                        })
+                        .sum::<u32>() // sum the gaps for each direction at this y coordinate
+                })
+                .sum::<u32>(); // sum across all y coordinates
 
-                    //println!("{:?}", c);
-
-                    // group by same y coordinate
-                    let mut xs = (&border).into_iter().into_group_map_by(|x| x.1);
-                    //println!("{:?}", border);
-                    //println!("{:?}", ys);
-
-                    // extract all x coordinates of each group
-                    let xs: Vec<Vec<i32>> = xs
-                        .iter()
-                        .map(|(_, xs)| xs.iter().map(|(x, _)| *x).collect())
-                        .collect();
-
-                    // find contiguous y coordinates for each x coordinate
-                    //println!("ys: {:?}", ys);
-                    let xs = xs
-                        .into_iter()
-                        .map(|mut a| count_contiguous(&mut a))
-                        .into_iter()
-                        .reduce(|a, b| a + b)
-                        .unwrap();
-
-                    println!("{} {}", p as char, xs+ys);
-                }
-            }
+            let fences = vertical_fences + horizontal_fences;
+            solution2 += area * fences;
         }
     }
 

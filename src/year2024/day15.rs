@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 pub fn solve(lines: Vec<String>) -> (String, String) {
     let mut solution1: i32 = 0;
     let mut solution2: i32 = 0;
@@ -134,7 +136,6 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
     grid = grid2.clone();
     let w = 2 * w;
     for m in moves {
-        println!("move: {}", m);
         let mut dx = 0;
         let mut dy = 0;
         match m {
@@ -211,7 +212,6 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
                         for (x, y) in &boxline {
                             let x = *x;
                             let y = *y + dy;
-                            // this pushes twice, e.g. if [] on top of [], but doesn't matter
                             match grid[y as usize][x as usize] {
                                 '[' => {
                                     nextline.push((x, y));
@@ -228,6 +228,7 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
                                 _ => {}
                             }
                         }
+                        nextline = nextline.into_iter().unique().collect();
                         if wall {
                             break;
                         }
@@ -259,12 +260,6 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
                 }
             }
             _ => {}
-        }
-        for y in 0..h {
-            for x in 0..w {
-                print!("{}", grid[y as usize][x as usize]);
-            }
-            println!("");
         }
     }
 

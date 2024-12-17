@@ -1,26 +1,26 @@
 use itertools::Itertools;
 use regex::Regex;
 
-fn read_ints(line: &String) -> Vec<i64> {
+fn read_ints(line: &String) -> Vec<u64> {
     let r = r"(\d+)";
-    let mut ints: Vec<i64> = Vec::new();
+    let mut ints: Vec<u64> = Vec::new();
     let r = Regex::new(&r).unwrap();
     for cap in r.find_iter(&line) {
-        ints.push(cap.as_str().parse::<i64>().unwrap());
+        ints.push(cap.as_str().parse::<u64>().unwrap());
     }
     ints
 }
 
-fn run(prg: &Vec<i64>, rega: i64, regb: i64, regc: i64) -> Vec<i64> {
+fn run(prg: &Vec<u8>, out: &mut Vec<u8>, rega: u64, regb: u64, regc: u64) -> usize {
     let mut rega = rega;
     let mut regb = regb;
     let mut regc = regc;
     let mut i = 0;
-    let mut out: Vec<i64> = Vec::new();
+    let mut outi = 0;
     loop {
-        let opcode = prg[i];
+        let opcode = prg[i] as u64;
         i += 1;
-        let operand = prg[i];
+        let operand = prg[i] as u64;
         i += 1;
         let combo = match operand {
             0..=3 => operand,
@@ -54,7 +54,11 @@ fn run(prg: &Vec<i64>, rega: i64, regb: i64, regc: i64) -> Vec<i64> {
             }
             5 => {
                 // out
-                out.push(combo & 7);
+                out[outi] = (combo & 7) as u8;
+                outi += 1;
+                if outi >= prg.len() {
+                    return outi;
+                }
             }
             6 => {
                 // bdv
@@ -70,7 +74,7 @@ fn run(prg: &Vec<i64>, rega: i64, regb: i64, regc: i64) -> Vec<i64> {
             break;
         }
     }
-    out
+    outi
 }
 
 pub fn solve(lines: Vec<String>) -> (String, String) {
@@ -79,19 +83,26 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
     let regb = read_ints(i.next().unwrap())[0];
     let regc = read_ints(i.next().unwrap())[0];
     i.next();
-    let prg = read_ints(i.next().unwrap());
+    let prg64 = read_ints(i.next().unwrap());
+    let mut prg = Vec::new();
+    for i in prg64 {
+        prg.push(i as u8);
+    }
 
-    let out = run(&prg, rega, regb, regc);
-    let solution1 = Itertools::join(&mut out.iter(), ",");
+    let mut out: Vec<u8> = vec![0; 100];
+    let len = run(&prg, &mut out, rega, regb, regc);
+    let solution1 = Itertools::join(&mut out[0..len].iter(), ",");
 
     let mut solution2 = "".to_string();
+    let mut out: Vec<u8> = vec![0; prg.len()];
     for a in 0.. {
-        let out = run(&prg, a, regb, regc);
-        if out == prg {
+        let len = run(&prg, &mut out, a, regb, regc);
+        if len == prg.len() && out == prg {
             solution2 = a.to_string();
+            break;
         }
         if a % 1000000 == 0 {
-            println!("{}",a);
+            println!("{}", a);
         }
     }
 

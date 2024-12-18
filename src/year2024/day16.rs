@@ -1,18 +1,24 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use std::hash::Hash;
 use std::i32;
 
-#[derive(Eq, PartialEq, Hash, Clone, Copy)]
+#[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
 struct Point {
     x: usize,
     y: usize,
 }
 
-#[derive(Eq, PartialEq, Hash, Clone, Copy)]
+#[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
 struct R {
     pos: Point,
     dir: usize,
+}
+
+#[derive(Eq, PartialEq, Hash, Clone, Debug)]
+struct Path {
+    p: Vec<R>,
+    cost: usize,
 }
 
 pub fn solve(lines: Vec<String>) -> (String, String) {
@@ -20,12 +26,15 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
 
     let mut i = lines.iter();
     loop {
-        let line = i.next().unwrap().trim();
-        if line.len() == 0 {
+        if let Some(line) = i.next() {
+            if line.len() == 0 {
+                break;
+            }
+            let line: Vec<char> = line.chars().collect();
+            grid.push(line);
+        } else {
             break;
         }
-        let line: Vec<char> = line.chars().collect();
-        grid.push(line);
     }
     let w: i32 = grid[0].len() as i32;
     let h: i32 = grid.len() as i32;
@@ -51,15 +60,21 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
     }
 
     let dirs: [(i32, i32); 4] = [(1, 0), (0, 1), (-1, 0), (0, -1)];
-    let dir = 0;
+    let dirs_char = b">v<^";
     let mut rs: Vec<R> = Vec::new();
     let start = R {
         pos: Point { x: sx, y: sy },
-        dir,
+        dir: 0,
     };
-    let mut visited: HashMap<R, Vec<Point>> = HashMap::new();
+    let mut visited: HashMap<R, Path> = HashMap::new();
+    let mut path = Path {
+        p: Vec::new(),
+        cost: 0,
+    };
+    path.p.push(start);
+    visited.insert(start, path);
     rs.push(start);
-    let mut wins: Vec<Vec<Point>> = Vec::new();
+    let mut wins: Vec<Path> = Vec::new();
     loop {
         if rs.len() == 0 {
             break;
@@ -71,28 +86,28 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
             let x = ((r.pos.x as i32) + dx) as usize;
             let y = ((r.pos.y as i32) + dy) as usize;
             let mut path = prev_path.clone();
-            path.push(r.pos);
             match grid[y][x] {
                 '.' | 'E' => {
                     let next = R {
                         pos: Point { x, y },
                         dir,
                     };
-                    if visited.contains_key(&next) {
-                        // if already visited, set new path, if shorter
-                        let path2 = visited.get(&next).unwrap();
-                        if path2.len() < path.len() {
-                            visited.insert(r, path2.clone());
+                    let mut cost = prev_path.cost + 1;
+                    let last_dir = prev_path.p.last().unwrap().dir;
+                    if dir != last_dir {
+                        cost += 1000;
+                        if dir.abs_diff(last_dir) == 2 {
+                            // 180°
+                            cost += 1000;
                         }
-                    } else {
-                        // if not visited, mark it as visited with the current path
+                    }
+                    path.p.push(next);
+                    path.cost = cost;
+                    if !visited.contains_key(&next) || visited.get(&next).unwrap().cost >= path.cost {
                         visited.insert(next, path.clone());
-
                         if x == ex && y == ey {
-                            // store winning position
                             wins.push(path.clone());
                         } else {
-                            // search next
                             rs.push(next.clone());
                         }
                     }
@@ -103,26 +118,38 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
     }
 
     // find lowest cost path
-    let mut min_cost = i32::MAX;
-    for path in wins {
-        let p0 = path[0];
-        let mut dir0 = 0;
-        let mut cost = 0;
-        for p in path[1..].iter() {
-            let dx = (p0.x as i32)-(p.x as i32);
-            let dy = (p0.x as i32)-(p.x as i32);
-            let dir = dirs.iter().position(|&d| d == (dx,dy)).unwrap();
-            if dir != dir0 {
-                cost += 1000;
-                dir0 = dir;
-            }
-            cost += 1;
-        }
-        if cost < min_cost {
-            min_cost = cost;
+    let mut min_cost = usize::MAX;
+    let mut win = wins[0].clone();
+    for path in &wins {
+        if path.cost < min_cost {
+            min_cost = path.cost;
+            win = path.clone();
         }
     }
+    for r in win.p {
+        grid[r.pos.y][r.pos.x] = dirs_char[r.dir] as char;
+    }
+
     let solution1 = min_cost;
 
-    (solution1.to_string(), solution1.to_string())
+    let mut visited:HashSet<Point> = HashSet::new();
+    for path in wins {
+        if path.cost == solution1 {
+            for p in path.p {
+                visited.insert(p.pos);
+                grid[p.pos.y][p.pos.x] = 'O';
+            }
+        }
+    }
+
+    for y in 0..h {
+        for x in 0..w {
+            print!("{}", grid[y as usize][x as usize]);
+        }
+        println!("");
+    }
+
+    let solution2 = visited.len();
+
+    (solution1.to_string(), solution2.to_string())
 }

@@ -6,11 +6,11 @@ use memoize::memoize;
 static mut TOWELS: Option<Trie<u8>> = None;
 
 #[memoize]
-fn search(pattern: String, start: usize) -> bool {
+fn search(pattern: String, start: usize) -> usize {
     if start >= pattern.len() {
-        return true;
+        return 1;
     }
-    let mut found = false;
+    let mut found: usize = 0;
     let results: Vec<String> = unsafe {
         TOWELS
             .as_ref()
@@ -19,13 +19,14 @@ fn search(pattern: String, start: usize) -> bool {
             .collect()
     };
     for s in results {
-        found |= search(pattern.clone(), start + s.len());
+        found += search(pattern.clone(), start + s.len());
     }
     found
 }
 
 pub fn solve(lines: Vec<String>) -> (String, String) {
-    let mut solution1: u64 = 0;
+    let mut solution1: usize = 0;
+    let mut solution2: usize = 0;
 
     let mut line_iter = lines.iter();
     let line = line_iter.next().unwrap();
@@ -43,13 +44,15 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
 
     loop {
         if let Some(pattern) = line_iter.next() {
-            if search(pattern.clone(), 0) {
+            let combinations = search(pattern.clone(), 0);
+            if combinations > 0 {
                 solution1 += 1;
             }
+            solution2 += combinations;
         } else {
             break;
         }
     }
 
-    (solution1.to_string(), "0".to_string())
+    (solution1.to_string(), solution2.to_string())
 }

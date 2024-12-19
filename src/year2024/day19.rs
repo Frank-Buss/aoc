@@ -1,23 +1,23 @@
+use memoize::memoize;
 use regex::Regex;
+use std::sync::LazyLock;
+use std::sync::Mutex;
 use trie_rs::{Trie, TrieBuilder};
 
-use memoize::memoize;
-
-static mut TOWELS: Option<Trie<u8>> = None;
+static TOWELS: LazyLock<Mutex<Trie<u8>>> = LazyLock::new(|| Mutex::new(TrieBuilder::new().build()));
 
 #[memoize]
 fn search(pattern: String, start: usize) -> usize {
     if start >= pattern.len() {
         return 1;
     }
-    let mut found: usize = 0;
-    let results: Vec<String> = unsafe {
-        TOWELS
-            .as_ref()
-            .unwrap()
+    let results: Vec<String> = {
+        let towels = TOWELS.lock().unwrap();
+        towels
             .common_prefix_search(pattern[start..].to_string())
             .collect()
     };
+    let mut found: usize = 0;
     for s in results {
         found += search(pattern.clone(), start + s.len());
     }
@@ -36,10 +36,8 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
     for cap in r.find_iter(&line) {
         towels.push(cap.as_str().to_string());
     }
-    let towels = towels.build();
-    unsafe {
-        TOWELS = Some(towels);
-    }
+    let built_towels = towels.build();
+    *TOWELS.lock().unwrap() = built_towels;
     line_iter.next();
 
     loop {

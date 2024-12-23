@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
 pub fn solve(lines: Vec<String>) -> (String, String) {
@@ -43,41 +44,49 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
                             solution1 += 1;
                         }
                         visited.insert(key.clone());
-                        println!("{} {} {}", c, c2, c3);
                     }
                 }
             }
         }
     }
 
-    let mut visited: HashSet<String> = HashSet::new();
-    let mut max:Vec<String>=Vec::new();
+    // get max number of connections for one node
+    let max = connections
+        .values()
+        .max_by(|x, y| x.len().cmp(&y.len()))
+        .unwrap()
+        .len();
+
+    // assume this is also the largest interconnected group,
+    // with one outgoing connection per node outside the group
+    let mut password = "".to_string();
     for c in &comps {
-        let group = get_connected(c, &connections, &mut visited);
-        if group.len() > max.len() {
-            max = group;
+        let cs = connections.get(c).unwrap();
+        if cs.len() == max {
+            // check all subsequence combinations for one less connection
+            for cs2 in cs.iter().combinations(max - 1) {
+                // check if this subgroup is fully interconnected
+                let mut connected = true;
+                for cg2 in cs2.iter().combinations(2) {
+                    // each pair needs to be connected, and needs to have a connection to the root node
+                    if !connections.get(*cg2[0]).unwrap().contains(cg2[1]) {
+                        connected = false;
+                        break;
+                    }
+                    if !connections.get(*cg2[0]).unwrap().contains(c) {
+                        connected = false;
+                        break;
+                    }
+                }
+                if connected {
+                    let mut result = cs2.clone();
+                    result.push(&c);
+                    result.sort();
+                    password = result.into_iter().join(",");
+                }
+            }
         }
     }
-    max.sort();
-    max.dedup();
-    let password = max.concat();
 
     (solution1.to_string(), password)
-}
-
-fn get_connected(
-    start: &String,
-    connections: &HashMap<String, Vec<String>>,
-    visited: &mut HashSet<String>,
-) -> Vec<String> {
-    if visited.contains(start) {
-        return vec![start.clone()];
-    }
-    visited.insert(start.clone());
-    let mut sum:Vec<String> = Vec::new();
-    for c in connections.get(start).unwrap() {
-        let mut nodes = get_connected(c, connections, visited);
-        sum.append(&mut nodes);
-    }
-    sum
 }

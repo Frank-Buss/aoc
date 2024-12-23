@@ -2,7 +2,6 @@ use std::collections::{HashMap, HashSet};
 
 pub fn solve(lines: Vec<String>) -> (String, String) {
     let mut solution1: u64 = 0;
-    let mut solution2: u64 = 0;
 
     // split each line and store it in 2 int vectors
     let mut lefts = Vec::new();

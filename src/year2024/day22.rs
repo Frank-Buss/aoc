@@ -1,8 +1,9 @@
+use rayon::prelude::*;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 pub fn solve(lines: Vec<String>) -> (String, String) {
     let mut solution1: u64 = 0;
-    let mut solution2: u64 = 0;
 
     let mut sellers: Vec<HashMap<Vec<i8>, u8>> = Vec::new();
     for line in lines {
@@ -39,24 +40,29 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
         sellers.push(v_by_ds);
     }
 
-    for d1 in -9..=9 {
-        for d2 in -9..=9 {
-            for d3 in -9..=9 {
-                for d4 in -9..=9 {
-                    let mut sum = 0 as u64;
-                    let ds = vec![d1, d2, d3, d4];
-                    for v_by_ds in &sellers {
-                        if v_by_ds.contains_key(&ds) {
-                            sum += *v_by_ds.get(&ds).unwrap() as u64;
-                        }
-                    }
-                    if sum > solution2 {
-                        solution2 = sum;
-                    }
-                }
-            }
-        }
-    }
+    let sellers = Arc::new(sellers);
+
+    let solution2 = (-9..=9)
+        .into_par_iter()
+        .flat_map(|d1| {
+            let sellers = Arc::clone(&sellers);
+            (-9..=9).into_par_iter().flat_map(move |d2| {
+                let sellers = Arc::clone(&sellers);
+                (-9..=9).into_par_iter().flat_map(move |d3| {
+                    let sellers = Arc::clone(&sellers);
+                    (-9..=9).into_par_iter().map(move |d4| {
+                        let ds = vec![d1, d2, d3, d4];
+                        sellers
+                            .iter()
+                            .filter_map(|v_by_ds| v_by_ds.get(&ds))
+                            .map(|&v| v as u64)
+                            .sum::<u64>()
+                    })
+                })
+            })
+        })
+        .max()
+        .unwrap_or(0);
 
     (solution1.to_string(), solution2.to_string())
 }

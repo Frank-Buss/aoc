@@ -57,7 +57,6 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
         for i in 0..w1s.len() {
             let w1name = &w1s[i];
             let w2name = &w2s[i];
-            println!("{w1name} {w2name}");
             let w1 = wires.get(w1name).unwrap();
             let op = &ops[i];
             let w2 = wires.get(w2name).unwrap();
@@ -69,7 +68,6 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
                     _ => 0,
                 };
                 let w3 = &w3s[i];
-                println!("{w1} {op} {w2} {v} {w3}");
                 *wires.entry(w3s[i].clone()).or_default() = v;
             } else {
                 undefined = true;
@@ -83,7 +81,6 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
     for w in wires.keys().sorted().rev() {
         if w.starts_with("z") {
             let v = *wires.get(w).unwrap();
-            println!("{w} {v} {solution1}");
             solution1 <<= 1;
             if v > 0 {
                 solution1 |= 1;

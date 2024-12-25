@@ -1,127 +1,143 @@
+use pathfinding::prelude::dijkstra;
 use regex::Regex;
 
-struct Context<'a> {
-    k: &'a Vec<Vec<char>>,
-    seqs: Vec<String>,
-    shortest: usize,
-    use_shortest: bool,
+const DIR_PAD: [[char; 3]; 2] = [[' ', '^', 'A'], ['<', 'v', '>']];
+
+const NUM_PAD: [[char; 3]; 4] = [
+    ['7', '8', '9'],
+    ['4', '5', '6'],
+    ['1', '2', '3'],
+    [' ', '0', 'A'],
+];
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct Point {
+    x: i32,
+    y: i32,
 }
 
-impl<'a> Context<'a> {
-    fn new(k: &'a Vec<Vec<char>>, use_shortest: bool) -> Self {
-        Self {
-            k,
-            seqs: Vec::new(),
-            shortest: usize::MAX,
-            use_shortest,
+impl Point {
+    fn mov(&mut self, dir: char) {
+        match dir {
+            '<' => {
+                self.x -= 1;
+            }
+            '>' => {
+                self.x += 1;
+            }
+            '^' => self.y -= 1,
+            'v' => self.y += 1,
+            _ => {}
         }
     }
 
-    fn find_seqs(&mut self, code: String, xs: i32, ys: i32, seq: String) {
-        if code.len() > 0 {
-            let c = code.as_bytes()[0] as char;
-            'y: for y in 0..self.k.len() {
-                for x in 0..self.k[0].len() {
-                    if self.k[y][x] == c {
-                        let x = x as i32;
-                        let y = y as i32;
-                        self.find_seqs2(code.clone(), xs, ys, x, y, seq.clone());
-                        break 'y;
+    fn is_valid(&self, pad: &[[char; 3]]) -> bool {
+        let w: i32 = pad[0].len() as i32;
+        let h: i32 = pad.len() as i32;
+        let x = self.x;
+        let y = self.y;
+        if x >= 0 && y >= 0 && x < w && y < h {
+            pad[y as usize][x as usize] != ' '
+        } else {
+            false
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct Pos {
+    dir1: Point,
+    dir2: Point,
+    num: Point,
+    code: String,
+    dir: char,
+}
+
+impl Pos {
+    fn try_key(&self, result: &mut Vec<Pos>, c: char) {
+        let mut next = self.clone();
+        let pressed = self.dir == 'A';
+        next.dir = c;
+        let c1 = DIR_PAD[self.dir1.y as usize][self.dir1.x as usize];
+
+        if c == 'A' {
+            if !pressed || true {
+                // button pressed on first dir pad
+                if c1 == 'A' {
+                    // button pressed on second dir pad
+                    let c2 = DIR_PAD[self.dir2.y as usize][self.dir2.x as usize];
+
+                    if c2 == 'A' {
+                        // button pressed on num pad, add to code
+                        // max code length is 4 and ends in A
+                        let n = NUM_PAD[self.num.y as usize][self.num.x as usize];
+                        next.code.push(n);
+                        if next.code.len() <= 4 {
+                            if next.code.len() == 4 {
+                                if n == 'A' {
+                                    result.push(next);
+                                }
+                            } else {
+                                if n != 'A' {
+                                    result.push(next);
+                                }
+                            }
+                        }
+                    } else {
+                        // move on num pad
+                        next.num.mov(c2);
+                        if next.num.is_valid(&NUM_PAD) {
+                            result.push(next);
+                        }
+                    }
+                } else {
+                    // move on second dir pad
+                    next.dir2.mov(c1);
+                    if next.dir2.is_valid(&DIR_PAD) {
+                        result.push(next);
                     }
                 }
             }
+        } else {
+            // move on first dir pad
+            next.dir1.mov(c);
+            if next.dir1.is_valid(&DIR_PAD) {
+                result.push(next);
+            }
         }
     }
 
-    fn find_seqs2(&mut self, code: String, xs: i32, ys: i32, x: i32, y: i32, seq: String) {
-        let dx = x - xs;
-        let dy = y - ys;
-        if dx == 0 && dy == 0 {
-            let code = code[1..].to_string();
-            let seq = seq + "A";
-            if self.use_shortest {
-                if seq.len() >= self.shortest {
-                    return;
-                }
-            }
-            if code.len() > 0 {
-                self.find_seqs(code, xs, ys, seq);
-            } else {
-                if !self.use_shortest {
-                    self.seqs.push(seq);
-                } else if seq.len() < self.shortest {
-                    self.shortest = seq.len();
-                    self.seqs.push(seq);
-                }
-            }
-        } else {
-            let x = x as i32;
-            let y = y as i32;
-            if dx < 0 {
-                self.find_seqs2(code.clone(), xs - 1, ys, x, y, seq.clone() + "<");
-            }
-            if dx > 0 {
-                self.find_seqs2(code.clone(), xs + 1, ys, x, y, seq.clone() + ">");
-            }
-            if dy < 0 {
-                self.find_seqs2(code.clone(), xs, ys - 1, x, y, seq.clone() + "^");
-            }
-            if dy > 0 {
-                self.find_seqs2(code.clone(), xs, ys + 1, x, y, seq.clone() + "v");
-            }
-        }
+    fn successors(&self) -> Vec<(Pos, usize)> {
+        let mut result = Vec::new();
+        self.try_key(&mut result, '<');
+        self.try_key(&mut result, '>');
+        self.try_key(&mut result, 'v');
+        self.try_key(&mut result, '^');
+        self.try_key(&mut result, 'A');
+        result.into_iter().map(|p| (p, 1)).collect()
     }
 }
 
 pub fn solve(lines: Vec<String>) -> (String, String) {
     let mut solution1: usize = 0;
 
-    #[rustfmt::skip]
-    let nk = Vec::from([
-        "789",
-        "456",
-        "123",
-        " 0A"
-    ].map(|s| s.chars().collect::<Vec<char>>()));
-
-    #[rustfmt::skip]
-    let dk = Vec::from([
-        " ^A",
-        "<v>"
-    ].map(|s| s.chars().collect::<Vec<char>>()));
-
     let r = Regex::new(r"0*(\d+)").unwrap();
-    for line in lines {
-        if line.len() > 0 {
-            let code = r.captures(&line).unwrap()[1].parse::<usize>().unwrap();
+    for code in lines {
+        if code.len() > 0 {
+            let start = Pos {
+                dir1: Point { x: 2, y: 0 },
+                dir2: Point { x: 2, y: 0 },
+                num: Point { x: 2, y: 3 },
+                code: "".into(),
+                dir: ' ',
+            };
+            let path = dijkstra(&start, |p| p.successors(), |p| *p.code == code)
+                .unwrap()
+                .0;
+            let dirs = path.iter().map(|p| p.dir).collect::<String>();
 
-            // find all possible sequences for the last numeric keypad
-            let mut context0 = Context::new(&nk, false);
-            let xs = 2;
-            let ys = 3;
-            context0.find_seqs(line.clone(), xs, ys, "".to_string());
-            println!("num seqs: {:?}", context0.seqs);
-
-            // find all possible sequences for the first directional keypad
-            let mut context1 = Context::new(&dk, false);
-            let xs = 2;
-            let ys = 0;
-            for seq in &context0.seqs {
-                context1.find_seqs(seq.clone(), xs, ys, "".to_string());
-            }
-            println!("dir seqs: {}", context1.seqs.len());
-
-            // find all possible sequences for the second directional keypad, save only shortest sequence this time
-            let mut context2 = Context::new(&dk, true);
-            for seq in &context1.seqs {
-                context2.find_seqs(seq.clone(), xs, ys, "".to_string());
-            }
-
-            // shortest sequence is any, because only the shortest are saved
-            let p = &context2.seqs[0];
-            println!("seq: {} code: {} {}", p.len(), code, p);
-
-            solution1 += code * p.len();
+            let code_number = r.captures(&code).unwrap()[1].parse::<usize>().unwrap();
+            solution1 += code_number * (dirs.len() - 1);
         }
     }
 
@@ -130,6 +146,7 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
     fn move_on_pad(x: &mut i32, y: &mut i32, c: char) {
         match c {
@@ -144,8 +161,8 @@ mod tests {
     fn verify_full_sequence(
         sequence: &str,
         code: &str,
-        dir_keypad: &Vec<Vec<char>>,
-        num_keypad: &Vec<Vec<char>>,
+        dir_keypad: &[[char; 3]; 2],
+        num_keypad: &[[char; 3]; 4],
     ) -> bool {
         // Start positions for all pads
         let mut dir1_x: i32 = 2; // First directional pad, start at 'A'
@@ -186,20 +203,11 @@ mod tests {
 
     #[test]
     fn test_verify_full_sequence() {
-        let dir_keypad = vec![vec![' ', '^', 'A'], vec!['<', 'v', '>']];
-
-        let num_keypad = vec![
-            vec!['7', '8', '9'],
-            vec!['4', '5', '6'],
-            vec!['1', '2', '3'],
-            vec![' ', '0', 'A'],
-        ];
-
         assert!(verify_full_sequence(
             "<<vAA>A>^AAvA<^A>AAvA^A<vA>^A<A>A<vA>^A<A>A<<vA>A>^AAvA<^A>A",
             "456A",
-            &dir_keypad,
-            &num_keypad
+            &DIR_PAD,
+            &NUM_PAD
         ));
     }
 }

@@ -4,7 +4,7 @@ use itertools::Itertools;
 
 pub fn solve(lines: Vec<String>) -> (String, String) {
     let mut solution1: u64 = 0;
-    let mut solution2: u64 = 0;
+    let solution2: u64 = 0;
 
     let mut i = lines.iter();
     let mut wires: HashMap<String, u8> = HashMap::new();
@@ -67,7 +67,6 @@ pub fn solve(lines: Vec<String>) -> (String, String) {
                     "XOR" => w1 ^ w2,
                     _ => 0,
                 };
-                let w3 = &w3s[i];
                 *wires.entry(w3s[i].clone()).or_default() = v;
             } else {
                 undefined = true;

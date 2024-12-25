@@ -56,46 +56,43 @@ struct Pos {
 impl Pos {
     fn try_key(&self, result: &mut Vec<Pos>, c: char) {
         let mut next = self.clone();
-        let pressed = self.dir == 'A';
         next.dir = c;
         let c1 = DIR_PAD[self.dir1.y as usize][self.dir1.x as usize];
 
         if c == 'A' {
-            if !pressed || true {
-                // button pressed on first dir pad
-                if c1 == 'A' {
-                    // button pressed on second dir pad
-                    let c2 = DIR_PAD[self.dir2.y as usize][self.dir2.x as usize];
+            // button pressed on first dir pad
+            if c1 == 'A' {
+                // button pressed on second dir pad
+                let c2 = DIR_PAD[self.dir2.y as usize][self.dir2.x as usize];
 
-                    if c2 == 'A' {
-                        // button pressed on num pad, add to code
-                        // max code length is 4 and ends in A
-                        let n = NUM_PAD[self.num.y as usize][self.num.x as usize];
-                        next.code.push(n);
-                        if next.code.len() <= 4 {
-                            if next.code.len() == 4 {
-                                if n == 'A' {
-                                    result.push(next);
-                                }
-                            } else {
-                                if n != 'A' {
-                                    result.push(next);
-                                }
+                if c2 == 'A' {
+                    // button pressed on num pad, add to code
+                    // max code length is 4 and ends in A
+                    let n = NUM_PAD[self.num.y as usize][self.num.x as usize];
+                    next.code.push(n);
+                    if next.code.len() <= 4 {
+                        if next.code.len() == 4 {
+                            if n == 'A' {
+                                result.push(next);
                             }
-                        }
-                    } else {
-                        // move on num pad
-                        next.num.mov(c2);
-                        if next.num.is_valid(&NUM_PAD) {
-                            result.push(next);
+                        } else {
+                            if n != 'A' {
+                                result.push(next);
+                            }
                         }
                     }
                 } else {
-                    // move on second dir pad
-                    next.dir2.mov(c1);
-                    if next.dir2.is_valid(&DIR_PAD) {
+                    // move on num pad
+                    next.num.mov(c2);
+                    if next.num.is_valid(&NUM_PAD) {
                         result.push(next);
                     }
+                }
+            } else {
+                // move on second dir pad
+                next.dir2.mov(c1);
+                if next.dir2.is_valid(&DIR_PAD) {
+                    result.push(next);
                 }
             }
         } else {

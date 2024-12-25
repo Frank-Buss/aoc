@@ -17,20 +17,6 @@ struct Point {
 }
 
 impl Point {
-    fn mov(&mut self, dir: char) {
-        match dir {
-            '<' => {
-                self.x -= 1;
-            }
-            '>' => {
-                self.x += 1;
-            }
-            '^' => self.y -= 1,
-            'v' => self.y += 1,
-            _ => {}
-        }
-    }
-
     fn is_valid(&self, pad: &[[char; 3]]) -> bool {
         let w: i32 = pad[0].len() as i32;
         let h: i32 = pad.len() as i32;
@@ -42,103 +28,126 @@ impl Point {
             false
         }
     }
+
+    fn mov(&mut self, dir: char) {
+        match dir {
+            '<' => self.x -= 1,
+            '>' => self.x += 1,
+            '^' => self.y -= 1,
+            'v' => self.y += 1,
+            _ => {}
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 struct Pos {
-    dir1: Point,
-    dir2: Point,
+    dirs: Vec<Point>,
     num: Point,
     code: String,
     dir: char,
 }
 
 impl Pos {
-    fn try_key(&self, result: &mut Vec<Pos>, c: char) {
-        let mut next = self.clone();
-        next.dir = c;
-        let c1 = DIR_PAD[self.dir1.y as usize][self.dir1.x as usize];
-
-        if c == 'A' {
-            // button pressed on first dir pad
-            if c1 == 'A' {
-                // button pressed on second dir pad
-                let c2 = DIR_PAD[self.dir2.y as usize][self.dir2.x as usize];
-
-                if c2 == 'A' {
-                    // button pressed on num pad, add to code
-                    // max code length is 4 and ends in A
-                    let n = NUM_PAD[self.num.y as usize][self.num.x as usize];
-                    next.code.push(n);
-                    if next.code.len() <= 4 {
-                        if next.code.len() == 4 {
-                            if n == 'A' {
-                                result.push(next);
-                            }
-                        } else {
-                            if n != 'A' {
-                                result.push(next);
-                            }
-                        }
-                    }
-                } else {
-                    // move on num pad
-                    next.num.mov(c2);
-                    if next.num.is_valid(&NUM_PAD) {
-                        result.push(next);
-                    }
-                }
-            } else {
-                // move on second dir pad
-                next.dir2.mov(c1);
-                if next.dir2.is_valid(&DIR_PAD) {
-                    result.push(next);
-                }
-            }
-        } else {
-            // move on first dir pad
-            next.dir1.mov(c);
-            if next.dir1.is_valid(&DIR_PAD) {
+    fn successors(&self) -> Vec<(Pos, usize)> {
+        let mut result = Vec::new();
+        for c in ['<', '>', 'v', '^', 'A'] {
+            let mut next = self.clone();
+            next.press_key(c);
+            if next.is_valid() {
                 result.push(next);
             }
         }
+        result.into_iter().map(|p| (p, 1)).collect()
     }
 
-    fn successors(&self) -> Vec<(Pos, usize)> {
-        let mut result = Vec::new();
-        self.try_key(&mut result, '<');
-        self.try_key(&mut result, '>');
-        self.try_key(&mut result, 'v');
-        self.try_key(&mut result, '^');
-        self.try_key(&mut result, 'A');
-        result.into_iter().map(|p| (p, 1)).collect()
+    fn press_key(&mut self, c: char) {
+        // set top level key
+        self.dir = c;
+
+        // iterate all key pads
+        let mut c = c;
+        for i in 0..self.dirs.len() {
+            let is_last = i == self.dirs.len() - 1;
+            let dir = &mut self.dirs[i];
+            if c == 'A' {
+                // A pressed
+                c = DIR_PAD[dir.y as usize][dir.x as usize];
+                if is_last {
+                    break;
+                } else {
+                    // press next key pad
+                    c = DIR_PAD[dir.y as usize][dir.x as usize];
+                }
+            } else {
+                // direction key pressed, move on current pad, no action for next pads needed
+                dir.mov(c);
+                return;
+            }
+        }
+
+        // press key or move on num pad
+        if c == 'A' {
+            // button pressed on num pad, add to code
+            let n = NUM_PAD[self.num.y as usize][self.num.x as usize];
+            self.code.push(n);
+        } else {
+            // movement on num pad
+            self.num.mov(c);
+        }
+    }
+
+    fn is_valid(&self) -> bool {
+        self.is_valid_code()
+            && self.dirs.iter().all(|d| d.is_valid(&DIR_PAD))
+            && self.num.is_valid(&NUM_PAD)
+    }
+
+    fn is_valid_code(&self) -> bool {
+        // must be 4 chars
+        if self.code.len() > 4 {
+            return false;
+        }
+
+        // first 3 chars must be digits
+        if !self.code.chars().take(3).all(|c| c.is_digit(10)) {
+            return false;
+        }
+
+        // last char must be A
+        if self.code.len() == 4 {
+            return self.code.chars().last().unwrap() == 'A';
+        }
+
+        true
     }
 }
 
 pub fn solve(lines: Vec<String>) -> (String, String) {
-    let mut solution1: usize = 0;
+    (solve_codes(&lines, 2).to_string(), "".to_string())
+}
 
+fn solve_codes(lines: &Vec<String>, num_pad_count: usize) -> usize {
+    let mut solution: usize = 0;
     let r = Regex::new(r"0*(\d+)").unwrap();
     for code in lines {
         if code.len() > 0 {
             let start = Pos {
-                dir1: Point { x: 2, y: 0 },
-                dir2: Point { x: 2, y: 0 },
+                dirs: vec![Point { x: 2, y: 0 }; num_pad_count],
                 num: Point { x: 2, y: 3 },
                 code: "".into(),
                 dir: ' ',
             };
-            let path = dijkstra(&start, |p| p.successors(), |p| *p.code == code)
+            let path = dijkstra(&start, |p| p.successors(), |p| *p.code == *code)
                 .unwrap()
                 .0;
             let dirs = path.iter().map(|p| p.dir).collect::<String>();
 
             let code_number = r.captures(&code).unwrap()[1].parse::<usize>().unwrap();
-            solution1 += code_number * (dirs.len() - 1);
+            solution += code_number * (dirs.len() - 1);
         }
     }
-
-    (solution1.to_string(), solution1.to_string())
+    solution
 }
 
 #[cfg(test)]

@@ -1,5 +1,6 @@
 use pathfinding::prelude::dijkstra;
 use regex::Regex;
+use std::hash::{Hash, Hasher};
 
 const DIR_PAD: [[char; 3]; 2] = [[' ', '^', 'A'], ['<', 'v', '>']];
 
@@ -40,7 +41,7 @@ impl Point {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Ord, PartialOrd)]
 struct Pos {
     dirs: Vec<Point>,
     num: Point,
@@ -48,13 +49,31 @@ struct Pos {
     dir: char,
 }
 
+impl Hash for Pos {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.dirs.hash(state);
+        self.num.hash(state);
+        self.code.hash(state);
+        // exclude self.dir
+    }
+}
+
+impl PartialEq for Pos {
+    fn eq(&self, other: &Self) -> bool {
+        self.dirs == other.dirs && self.num == other.num && self.code == other.code
+        // exclude self.dir
+    }
+}
+
+impl Eq for Pos {}
+
 impl Pos {
-    fn successors(&self) -> Vec<(Pos, usize)> {
+    fn successors(&self, code: &String) -> Vec<(Pos, usize)> {
         let mut result = Vec::new();
         for c in ['<', '>', 'v', '^', 'A'] {
             let mut next = self.clone();
             next.press_key(c);
-            if next.is_valid() {
+            if next.is_valid(code) {
                 result.push(next);
             }
         }
@@ -97,13 +116,13 @@ impl Pos {
         }
     }
 
-    fn is_valid(&self) -> bool {
-        self.is_valid_code()
+    fn is_valid(&self, code: &String) -> bool {
+        self.is_valid_code(code)
             && self.dirs.iter().all(|d| d.is_valid(&DIR_PAD))
             && self.num.is_valid(&NUM_PAD)
     }
 
-    fn is_valid_code(&self) -> bool {
+    fn is_valid_code(&self, code: &String) -> bool {
         // must be 4 chars
         if self.code.len() > 4 {
             return false;
@@ -119,12 +138,22 @@ impl Pos {
             return self.code.chars().last().unwrap() == 'A';
         }
 
+        // must start with the target code
+        code.starts_with(&self.code);
+
         true
     }
 }
 
 pub fn solve(lines: Vec<String>) -> (String, String) {
-    (solve_codes(&lines, 2).to_string(), "".to_string())
+    for i in 1..25 {
+        println!("{i} {}", solve_codes(&lines, i).to_string());
+    }
+
+    (
+        solve_codes(&lines, 2).to_string(),
+        "".to_string(), //solve_codes(&lines, 25).to_string(),
+    )
 }
 
 fn solve_codes(lines: &Vec<String>, num_pad_count: usize) -> usize {
@@ -138,7 +167,7 @@ fn solve_codes(lines: &Vec<String>, num_pad_count: usize) -> usize {
                 code: "".into(),
                 dir: ' ',
             };
-            let path = dijkstra(&start, |p| p.successors(), |p| *p.code == *code)
+            let path = dijkstra(&start, |p| p.successors(&code), |p| *p.code == *code)
                 .unwrap()
                 .0;
             let dirs = path.iter().map(|p| p.dir).collect::<String>();
